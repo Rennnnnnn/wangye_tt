@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI技术栈关系可视化</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            color: #333;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+        
+        header {
+            background: linear-gradient(to right, #2c3e50, #4a6491);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 20px;
+            gap: 20px;
+        }
+        
+        .visualization {
+            flex: 2;
+            min-width: 300px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            height: 600px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .info-panel {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .info-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .info-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+        
+        .card {
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card h3 {
+            color: #2c3e50;
+            margin-bottom: 8px;
+            font-size: 1.2rem;
+        }
+        
+        .card p {
+            color: #555;
+            line-height: 1.5;
+        }
+        
+        .timeline {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .timeline-title {
+            font-size: 1.5rem;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        
+        .timeline-container {
+            display: flex;
+            overflow-x: auto;
+            padding: 10px 0;
+            gap: 15px;
+        }
+        
+        .timeline-item {
+            min-width: 200px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        .timeline-year {
+            font-weight: bold;
+            color: #e74c3c;
+            margin-bottom: 5px;
+        }
+        
+        .timeline-event {
+            font-size: 0.9rem;
+            color: #2c3e50;
+        }
+        
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: white;
+            background: rgba(0, 0, 0, 0.2);
+            margin-top: 20px;
+            border-radius: 0 0 15px 15px;
+        }
+        
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #2980b9;
+        }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+            justify-content: center;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+            margin-right: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+            
+            .visualization, .info-panel {
+                min-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-brain"></i> AI技术栈关系可视化</h1>
+            <p class="subtitle">探索人工智能、机器学习、深度学习、生成式AI等关键技术之间的关系与发展历程</p>
+        </header>
+        
+        <div class="main-content">
+            <div class="visualization" id="tree-visualization">
+                <!-- D3.js树状图将在这里渲染 -->
+            </div>
+            
+            <div class="info-panel">
+                <h2 class="info-title">技术详情</h2>
+                <div class="info-content" id="info-content">
+                    <div class="card">
+                        <h3>人工智能 (AI)</h3>
+                        <p>让机器能够模拟人类智能行为的科学与工程。包括推理、知识表示、规划、学习、自然语言处理、感知和移动物体等能力。</p>
+                    </div>
+                    <div class="card">
+                        <h3>机器学习</h3>
+                        <p>AI的一个子领域，通过算法使计算机能够从数据中学习并做出预测或决策，而无需明确编程。</p>
+                    </div>
+                    <div class="card">
+                        <h3>深度学习</h3>
+                        <p>机器学习的子集，使用深层神经网络模拟人脑处理信息的方式，擅长处理非结构化数据。</p>
+                    </div>
+                    <div class="card">
+                        <h3>生成式AI</h3>
+                        <p>能够创造新内容（文本、图像、音频等）的AI系统，基于从训练数据中学到的模式生成全新输出。</p>
+                    </div>
+                </div>
+                
+                <div class="controls">
+                    <button id="zoom-in"><i class="fas fa-search-plus"></i> 放大</button>
+                    <button id="zoom-out"><i class="fas fa-search-minus"></i> 缩小</button>
+                    <button id="reset-view"><i class="fas fa-sync-alt"></i> 重置</button>
+                </div>
+                
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #2c3e50;"></div>
+                        <span>基础概念</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #3498db;"></div>
+                        <span>核心技术</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #e74c3c;"></div>
+                        <span>应用技术</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #2ecc71;"></div>
+                        <span>模型/算法</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="timeline">
+            <h2 class="timeline-title">AI技术发展时间轴</h2>
+            <div class="timeline-container">
+                <div class="timeline-item">
+                    <div class="timeline-year">1950s</div>
+                    <div class="timeline-event">AI概念诞生</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-year">1980s</div>
+                    <div class="timeline-event">专家系统兴起</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-year">1990s</div>
+                    <div class="timeline-event">机器学习发展</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-year">2000s</div>
+                    <div class="timeline-event">深度学习突破</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-year">2010s</div>
+                    <div class="timeline-event">生成式AI兴起</div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-year">2020s</div>
+                    <div class="timeline-event">大模型与多模态AI</div>
+                </div>
+            </div>
+        </div>
+        
+        <footer>
+            <p>AI技术栈关系可视化 | 使用D3.js创建交互式图表</p>
+        </footer>
+    </div>
+ 
+    <script>
+        // 技术栈数据
+        const techData = {
+            name: "人工智能",
+            description: "让机器模拟人类智能的科学与工程",
+            color: "#2c3e50",
+            children: [
+                {
+                    name: "专家系统",
+                    description: "基于规则和知识库的早期AI系统",
+                    color: "#3498db",
+                    children: []
+                },
+                {
+                    name: "机器学习",
+                    description: "通过算法从数据中学习并做出预测",
+                    color: "#3498db",
+                    children: [
+                        {
+                            name: "神经网络",
+                            description: "模拟人脑神经元连接的计算模型",
+                            color: "#3498db",
+                            children: [
+                                {
+                                    name: "深度学习",
+                                    description: "使用深层神经网络的机器学习方法",
+                                    color: "#e74c3c",
+                                    children: [
+                                        {
+                                            name: "生成式AI",
+                                            description: "能够创造新内容的AI系统",
+                                            color: "#e74c3c",
+                                            children: [
+                                                {
+                                                    name: "Transformer模型",
+                                                    description: "基于自注意力机制的神经网络架构",
+                                                    color: "#2ecc71",
+                                                    children: []
+                                                },
+                                                {
+                                                    name: "扩散模型",
+                                                    description: "通过逐步去噪生成高质量图像的模型",
+                                                    color: "#2ecc71",
+                                                    children: []
+                                                },
+                                                {
+                                                    name: "GANs",
+                                                    description: "生成对抗网络，通过生成器和判别器博弈",
+                                                    color: "#2ecc71",
+                                                    children: []
+                                                }
+                                            ]
+                                        },
+                                        {
+                                            name: "计算机视觉",
+                                            description: "让机器理解和解释视觉信息",
+                                            color: "#e74c3c",
+                                            children: []
+                                        },
+                                        {
+                                            name: "自然语言处理",
+                                            description: "让机器理解、解释和生成人类语言",
+                                            color: "#e74c3c",
+                                            children: []
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            name: "强化学习",
+                            description: "通过试错与环境交互学习最优策略",
+                            color: "#3498db",
+                            children: []
+                        },
+                        {
+                            name: "监督学习",
+                            description: "使用标记数据训练预测模型",
+                            color: "#3498db",
+                            children: []
+                        }
+                    ]
+                }
+            ]
+        };
+ 
+        // 设置树状图尺寸和边距
+        const margin = { top: 40, right: 120, bottom: 40, left: 120 };
+        const width = document.getElementById('tree-visualization').clientWidth - margin.left - margin.right;
+        const height = document.getElementById('tree-visualization').clientHeight - margin.top - margin.bottom;
+ 
+        // 创建SVG容器
+        const svg = d3.select("#tree-visualization")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
+ 
+        // 创建树状布局
+        const treeLayout = d3.tree().size([height, width]);
+        
+        // 将数据转换为层次结构
+        const root = d3.hierarchy(techData);
+        const treeData = treeLayout(root);
+ 
+        // 创建缩放行为
+        const zoom = d3.zoom()
+            .scaleExtent([0.5, 2])
+            .on("zoom", (event) => {
+                svg.attr("transform", event.transform);
+            });
+ 
+        d3.select("#tree-visualization svg").call(zoom);
+ 
+        // 添加连线
+        const links = svg.selectAll(".link")
+            .data(treeData.links())
+            .enter()
+            .append("path")
+            .attr("class", "link")
+            .attr("d", d3.linkHorizontal()
+                .x(d => d.y)
+                .y(d => d.x))
+            .style("fill", "none")
+            .style("stroke", "#ccc")
+            .style("stroke-width", 2);
+ 
+        // 添加节点
+        const nodes = svg.selectAll(".node")
+            .data(treeData.descendants())
+            .enter()
+            .append("g")
+            .attr("class", "node")
+            .attr("transform", d => `translate(${d.y},${d.x})`);
+ 
+        // 添加节点圆圈
+        nodes.append("circle")
+            .attr("r", 10)
+            .style("fill", d => d.data.color)
+            .style("stroke", "#fff")
+            .style("stroke-width", 2)
+            .on("click", function(event, d) {
+                // 更新信息面板
+                document.getElementById('info-content').innerHTML = `
+                    <div class="card">
+                        <h3>${d.data.name}</h3>
+                        <p>${d.data.description}</p>
+                    </div>
+                `;
+                
+                // 高亮当前节点
+                d3.selectAll("circle").style("stroke", "#fff").style("stroke-width", 2);
+                d3.select(this).style("stroke", "#f1c40f").style("stroke-width", 3);
+            });
+ 
+        // 添加节点标签
+        nodes.append("text")
+            .attr("dy", ".35em")
+            .attr("x", d => d.children ? -15 : 15)
+            .style("text-anchor", d => d.children ? "end" : "start")
+            .text(d => d.data.name)
+            .style("font-size", "14px")
+            .style("font-weight", "bold")
+            .style("fill", "#2c3e50");
+ 
+        // 添加控制按钮功能
+        document.getElementById('zoom-in').addEventListener('click', () => {
+            d3.select("#tree-visualization svg").transition().call(zoom.scaleBy, 1.3);
+        });
+ 
+        document.getElementById('zoom-out').addEventListener('click', () => {
+            d3.select("#tree-visualization svg").transition().call(zoom.scaleBy, 0.7);
+        });
+ 
+        document.getElementById('reset-view').addEventListener('click', () => {
+            d3.select("#tree-visualization svg").transition().call(zoom.transform, d3.zoomIdentity);
+        });
+ 
+        // 初始选择AI节点
+        d3.select("circle").dispatch("click");
+    </script>
+</body>
+</html>
